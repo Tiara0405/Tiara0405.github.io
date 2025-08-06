@@ -545,16 +545,29 @@
                 <div class="h-8 border border-black mt-1 p-1" id="printOvertimeNotes"></div>
             </div>
             <!-- KODE BAHAYA (UNIT) di kolom terpisah di samping -->
-            <div class="border border-black p-1">
-                <div class="font-semibold text-center">KODE BAHAYA (UNIT)</div>
-                <div class="grid grid-cols-2 gap-1 mt-2 text-xxs">
-                    <div class="flex items-center"><div class="checkbox-box"></div> A = Operasi & perbaikan segera</div>
-                    <div class="flex items-center"><div class="checkbox-box"></div> B = Perbaikan dalam waktu 24 jam</div>
-                    <div class="flex items-center"><div class="checkbox-box"></div> C = Perbaikan dalam waktu 1 minggu</div>
-                    <div class="flex items-center"><div class="checkbox-box"></div> AA = Perbaikan dalam 12 jam</div>
-                </div>
-            </div>
-        </div>
+            <div class="border border-black p-1" style="width: 250px; font-family: Arial, sans-serif;">
+  <div style="font-weight: 600; text-align: center; margin-bottom: 8px;">
+    KODE BAHAYA (UNIT)
+  </div>
+  <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; font-size: 10px;">
+    <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
+      <input type="checkbox" />
+      A = Operasi & perbaikan segera
+    </label>
+    <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
+      <input type="checkbox" />
+      B = Perbaikan dalam waktu 24 jam
+    </label>
+    <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
+      <input type="checkbox" />
+      C = Perbaikan dalam waktu 1 minggu
+    </label>
+    <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
+      <input type="checkbox" />
+      AA = Perbaikan dalam 12 jam
+    </label>
+  </div>
+</div>
 
 
         <!-- Signature Section -->
