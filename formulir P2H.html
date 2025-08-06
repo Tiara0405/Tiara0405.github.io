@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Formulir P2H - PT Mitra Multi Indomining</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
+    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-print-color-adjust: exact; /* For printing background colors */
+            color-adjust: exact;
+        }
+        .form-container {
+            width: 210mm; /* A4 width */
+            min-height: 297mm; /* A4 height */
+            margin: 0 auto;
+            background-color: white;
+            border: 1px solid #000;
+            box-shadow: 0 0 5px rgba(0,0,0,0.2);
+            padding: 10mm;
+            box-sizing: border-box;
+        }
+        .border-black {
+            border-color: #000;
+        }
+        .text-xxs {
+            font-size: 0.65rem; /* Smaller text for compact layout */
+        }
+        .text-xxxs {
+            font-size: 0.55rem; /* Even smaller text */
+        }
+        /* Table-like styling for grid items */
+        .table-header-cell, .table-cell {
+            border-bottom: 1px solid #000;
+            padding: 0.25rem 0.5rem;
+            box-sizing: border-box;
+        }
+        .table-header-cell {
+            font-weight: 600;
+            background-color: #f3f4f6; /* Light gray background for headers */
+        }
+        /* Ensure only the very last row in the main checklist container doesn't have a bottom border */
+        .checklist-container > .table-row:last-child .table-cell {
+            border-bottom: none;
+        }
+        .signature-area {
+            height: 50px; /* Fixed height for signature line */
+            border-bottom: 1px dotted #000; /* Changed to dotted border */
+            position: relative; /* Needed for absolute positioning of signature image */
+        }
+        .signature-area img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain; /* Ensure image fits without stretching */
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        .checkbox-box {
+            width: 12px;
+            height: 12px;
+            border: 1px solid #000;
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 4px;
+            background-color: white; /* Ensure checkbox background is white */
+        }
+        .checked-box::after {
+            content: '\2713'; /* Unicode checkmark character */
+            display: block;
+            font-size: 10px;
+            line-height: 1;
+            text-align: center;
+            color: #000;
+        }
+        /* Styling for active tab button */
+        .tab-button.active {
+            border-color: #3b82f6;
+            color: #3b82f6;
+            font-weight: 600;
+        }
+        /* Alpine.js x-cloak directive */
+        [x-cloak] {
+            display: none !important;
+        }
+
+        /* Specific styles for the printable form to match physical document */
+        #p2hPrintableForm .checkbox-box {
+            width: 16px; /* Larger for print */
+            height: 16px; /* Larger for print */
+            margin-right: 2px; /* Reduce margin for tighter fit */
+        }
+        #p2hPrintableForm .checked-box::after {
+            font-size: 14px; /* Larger checkmark for print */
+            line-height: 1; /* Adjust line height to center */
+        }
+        #p2hPrintableForm .table-cell {
+            padding: 0.1rem 0.3rem; /* Reduce padding for tighter layout */
+        }
+        #p2hPrintableForm .text-xxs {
+            font-size: 0.6rem; /* Slightly smaller font for print */
+        }
+        #p2hPrintableForm .text-xxxs {
+            font-size: 0.5rem; /* Slightly smaller font for print */
+        }
+        /* Adjusted grid columns for vehicle checklist for better fit */
+        #p2hPrintableForm .grid-cols-\[2fr_0\.5fr_0\.5fr_0\.5fr_1\.5fr\] {
+            grid-template-columns: 2.2fr 0.4fr 0.4fr 0.5fr 1.5fr; /* Adjusted for better fit */
+        }
+        /* Adjusted grid columns for driver checklist for better fit */
+        #p2hPrintableForm .grid-cols-\[2fr_0\.4fr_0\.4fr\] {
+            grid-template-columns: 2.5fr 0.4fr 0.4fr; /* Adjusted for better fit */
+        }
+        #p2hPrintableForm .km-shift-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+            align-items: end; /* Align items to the bottom */
+        }
+        #p2hPrintableForm .km-shift-item {
+            display: flex;
+            align-items: center;
+            padding: 0.25rem;
+            border: 1px solid black;
+        }
+        #p2hPrintableForm .km-shift-item.no-border-top {
+            border-top: none;
+        }
+        #p2hPrintableForm .km-shift-item > div {
+            flex-grow: 1;
+            text-align: center;
+        }
+        #p2hPrintableForm .km-shift-item span {
+            margin-right: 0.5rem;
+        }
+        #p2hPrintableForm .km-value {
+            border-bottom: 1px solid black;
+            width: 60%; /* Adjust width as needed */
+            text-align: center;
+        }
+        #p2hPrintableForm .shift-option {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start; /* Align shift options to start */
+            padding: 0.25rem;
+        }
+        #p2hPrintableForm .overtime-notes-container {
+            border: 1px solid black;
+            padding: 0.25rem;
+            height: 40px; /* Fixed height for overtime notes */
+            overflow: hidden;
+        }
+        #p2hPrintableForm .hazard-code-container {
+            border: 1px solid black;
+            padding: 0.25rem;
+            height: 100%; /* Fill remaining height */
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        #p2hPrintableForm .hazard-code-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 2px;
+        }
+        #p2hPrintableForm .hazard-code-item:last-child {
+            margin-bottom: 0;
+        }
+        #p2hPrintableForm .signature-section-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        #p2hPrintableForm .signature-block {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end; /* Align content to bottom */
+            height: 100px; /* Give enough height for signature area */
+        }
+        #p2hPrintableForm .signature-area-print {
+            height: 50px;
+            border-bottom: 1px dotted #000;
+            width: 80%; /* Adjust width for signature line */
+            position: relative;
+            margin-top: 20px; /* Space for the signature line */
+        }
+        #p2hPrintableForm .signature-area-print img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <!-- Main interactive application -->
+    <div class="container mx-auto max-w-3xl p-4" x-data="p2hApp">
+        <header class="text-center mb-6 bg-white p-4 rounded-lg shadow">
+            <h1 class="text-2xl font-bold text-gray-800">FORMULIR PEMERIKSAAN HARIAN (P2H)</h1>
+            <p class="text-md text-gray-600">Light Vehicle & Bugar Selamat</p>
+            <p class="text-sm text-gray-500">PT Mitra Multi Indomining</p>
+        </header>
+
+        <main id="p2hAppContent" class="bg-white rounded-lg shadow">
+            <div class="border-b border-gray-200">
+                <nav class="flex -mb-px" aria-label="Tabs">
+                    <button @click="activeTab = 'info'" :class="{ 'active': activeTab === 'info' }" class="tab-button w-1/3 py-4 px-1 text-center border-b-2 font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                        Info Umum
+                    </button>
+                    <button @click="activeTab = 'kendaraan'" :class="{ 'active': activeTab === 'kendaraan' }" class="tab-button w-1/3 py-4 px-1 text-center border-b-2 font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                        Cek Unit
+                    </button>
+                    <button @click="activeTab = 'driver'" :class="{ 'active': activeTab === 'driver' }" class="tab-button w-1/3 py-4 px-1 text-center border-b-2 font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                        Cek Driver
+                    </button>
+                </nav>
+            </div>
+
+            <div class="p-6">
+                <div x-show="activeTab === 'info'">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">1. Informasi Umum</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="driverName" class="block text-sm font-medium text-gray-700">Nama Driver</label>
+                            <input type="text" id="driverName" x-model="formData.driverName" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" placeholder="Contoh: Budi Santoso">
+                        </div>
+                        <div>
+                            <label for="unitNumber" class="block text-sm font-medium text-gray-700">Nomor Lambung Unit</label>
+                            <input type="text" id="unitNumber" x-model="formData.unitNumber" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" placeholder="Contoh: MM-14">
+                        </div>
+                        <div>
+                            <label for="date" class="block text-sm font-medium text-gray-700">Tanggal</label>
+                            <input type="date" id="date" x-model="formData.date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="shift" class="block text-sm font-medium text-gray-700">Shift</label>
+                            <select id="shift" x-model="formData.shift" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                                <option>Shift 1</option>
+                                <option>Shift 2</option>
+                            </select>
+                        </div>
+                        <div class="md:col-span-2">
+                            <label for="kmStart" class="block text-sm font-medium text-gray-700">Kilometer Awal</label>
+                            <input type="number" id="kmStart" x-model.number="formData.kmStart" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" placeholder="Masukkan angka kilometer">
+                        </div>
+                    </div>
+                </div>
+
+                <div x-show="activeTab === 'kendaraan'">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">2. Checklist Kondisi Unit</h3>
+                    <div class="space-y-4">
+                        <template x-for="(item, index) in formData.vehicleChecklist" :key="index">
+                            <div class="p-3 border rounded-lg">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm font-medium text-gray-800" x-text="item.name"></span>
+                                    <div class="flex items-center space-x-2">
+                                        <span class="text-xs font-bold px-2 py-1 rounded-full"
+                                            :class="{
+                                                'bg-red-100 text-red-800': item.code === 'AA',
+                                                'bg-orange-100 text-orange-800': item.code === 'A',
+                                                'bg-yellow-100 text-yellow-800': item.code === 'B',
+                                                'bg-green-100 text-green-800': item.code === 'C'
+                                            }" x-text="item.code"></span>
+                                        <button @click="item.status = 'Layak'" :class="item.status === 'Layak' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'" class="px-3 py-1 text-sm rounded-md transition">Layak</button>
+                                        <button @click="item.status = 'Tidak Layak'" :class="item.status === 'Tidak Layak' ? 'bg-red-500 text-white' : 'bg-gray-200 text-gray-700'" class="px-3 py-1 text-sm rounded-md transition">Tidak</button>
+                                    </div>
+                                </div>
+                                <div x-show="item.status === 'Tidak Layak'" class="mt-3">
+                                    <label class="block text-sm font-medium text-gray-700">Keterangan</label>
+                                    <input type="text" x-model="item.notes" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" placeholder="Jelaskan kerusakan...">
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <div x-show="activeTab === 'driver'">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">3. Checklist Bugar Selamat</h3>
+                    <div class="space-y-4">
+                        <template x-for="(item, index) in formData.driverChecklist" :key="index">
+                            <div class="p-3 border rounded-lg">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm font-medium text-gray-800" x-text="item.question"></span>
+                                    <div class="flex items-center space-x-2">
+                                        <button @click="item.answer = 'Ya'" :class="item.answer === 'Ya' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'" class="px-3 py-1 text-sm rounded-md transition">Ya</button>
+                                        <button @click="item.answer = 'Tidak'" :class="item.answer === 'Tidak' ? 'bg-red-500 text-white' : 'bg-gray-200 text-gray-700'" class="px-3 py-1 text-sm rounded-md transition">Tidak</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                    
+                    <div class="mt-8 border-t pt-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">4. Kesimpulan & Verifikasi</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                            <div class="p-4 rounded-lg text-center" :class="vehicleConclusion === 'LAYAK' ? 'bg-green-100' : 'bg-red-100'">
+                                <p class="text-sm font-medium text-gray-600">Kesimpulan Unit</p>
+                                <p class="text-2xl font-bold" :class="vehicleConclusion === 'LAYAK' ? 'text-green-800' : 'text-red-800'" x-text="vehicleConclusion"></p>
+                            </div>
+                            <div class="p-4 rounded-lg text-center" :class="driverConclusion === 'SIAP' ? 'bg-green-100' : 'bg-red-100'">
+                                <p class="text-sm font-medium text-gray-600">Kesimpulan Driver</p>
+                                <p class="text-2xl font-bold" :class="driverConclusion === 'SIAP' ? 'text-green-800' : 'text-red-800'" x-text="driverConclusion"></p>
+                            </div>
+                        </div>
+
+                        <div class="mb-6">
+                            <label for="finalNotes" class="block text-sm font-medium text-gray-700">Catatan Tambahan / Keterangan</label>
+                            <div class="flex items-center space-x-2">
+                                <textarea id="finalNotes" x-model="formData.finalNotes" rows="3" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" placeholder="Misal: Fuel filter minta diganti"></textarea>
+                                <button @click="generateNotesSuggestion()" :disabled="isGeneratingSuggestion" class="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-md shadow-sm hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-300 disabled:opacity-50 disabled:cursor-not-allowed">
+                                    <span x-show="!isGeneratingSuggestion">Saran Keterangan ✨</span>
+                                    <span x-show="isGeneratingSuggestion">Membuat...</span>
+                                </button>
+                            </div>
+                            <p x-show="isGeneratingSuggestion" class="text-xs text-gray-500 mt-1">Sistem AI sedang membuat saran keterangan...</p>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Tanda Tangan Driver</label>
+                                <div class="signature-pad-container">
+                                    <canvas id="signaturePadDriver" class="rounded-lg bg-gray-50 w-full h-32"></canvas>
+                                    <div class="signature-pad-actions">
+                                        <button @click="clearSignature('driver')" class="text-xs bg-gray-200 hover:bg-gray-300 text-gray-600 font-semibold py-1 px-2 rounded">Ulangi</button>
+                                    </div>
+                                </div>
+                                <p class="text-xs text-center text-gray-500 mt-1">Gunakan jari atau stylus untuk tanda tangan</p>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Tanda Tangan Pengawas</label>
+                                <div class="signature-pad-container">
+                                    <canvas id="signaturePadSupervisor" class="rounded-lg bg-gray-50 w-full h-32"></canvas>
+                                    <div class="signature-pad-actions">
+                                        <button @click="clearSignature('supervisor')" class="text-xs bg-gray-200 hover:bg-gray-300 text-gray-600 font-semibold py-1 px-2 rounded">Ulangi</button>
+                                    </div>
+                                </div>
+                                <p class="text-xs text-center text-gray-500 mt-1">Verifikasi oleh pengawas</p>
+                            </div>
+                        </div>
+
+                        <div class="mt-8">
+                            <button @click="submitAndGeneratePdf" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline transition duration-150 ease-in-out">
+                                Kirim & Cetak Laporan P2H
+                            </button>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </main>
+        
+        <div x-show="showSuccessModal" x-cloak class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center z-50">
+            <div class="bg-white p-8 rounded-lg shadow-xl text-center">
+                <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
+                    <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                </div>
+                <h3 class="text-lg leading-6 font-medium text-gray-900 mt-4">Laporan Terkirim!</h3>
+                <div class="mt-2 px-7 py-3">
+                    <p class="text-sm text-gray-500">Laporan P2H telah berhasil disimpan. Anda dapat mengunduh salinannya dalam format PDF.</p>
+                </div>
+                <div class="mt-4">
+                    <button @click="console.log('Tombol Unduh PDF diklik.'); generatePdf();" class="px-4 py-2 bg-blue-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300">
+                        Unduh PDF
+                    </button>
+                    <button @click="console.log('Tombol Tutup diklik.'); showSuccessModal = false;" class="mt-2 px-4 py-2 bg-gray-200 text-gray-700 text-base font-medium rounded-md w-full shadow-sm hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400">
+                        Tutup
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Hidden printable form structure for PDF generation -->
+    <div id="p2hPrintableForm" class="form-container" style="position: absolute; left: -9999px; top: -9999px;">
+        <!-- Header Section -->
+        <div class="flex justify-between items-start border-b border-black pb-2 mb-2">
+            <div class="flex items-center">
+                <div class="mr-2">
+                    <img :src="logoBase64" alt="Logo PT Mitra Multi Indomining" class="h-12 w-auto">
+                </div>
+                <div class="flex-grow">
+                    <div class="font-bold text-lg">FORMULIR (FORM)</div>
+                    <div class="text-sm">PT MITRA MULTI INDOMINING</div>
+                </div>
+            </div>
+            <div class="text-xs text-right">
+                <div>Form No : MMI/HSE/FRM/020</div>
+                <div>Tgl Dibuat : 01-Aug-23</div>
+                <div>Tgl Revisi : 02-Jan-24</div>
+            </div>
+        </div>
+
+        <div class="text-center font-bold text-lg mb-2">
+            PELAKSANAAN PEMERIKSAAN HARIAN (P2H) LIGHT VEHICLE & BUGAR SELAMAT
+        </div>
+
+        <!-- General Information Section -->
+        <div class="grid grid-cols-2 gap-x-4 mb-4 text-sm">
+            <div>
+                <div class="flex border border-black">
+                    <div class="w-1/2 border-r border-black p-1">Tanggal</div>
+                    <div class="w-1/2 p-1" id="printDate"></div>
+                </div>
+                <div class="flex border border-black border-t-0">
+                    <div class="w-1/2 border-r border-black p-1">Driver/Pengemudi</div>
+                    <div class="w-1/2 p-1" id="printDriverName"></div>
+                </div>
+            </div>
+            <div>
+                <div class="flex border border-black">
+                    <div class="w-1/2 border-r border-black p-1">No. Lambung</div>
+                    <div class="w-1/2 p-1" id="printUnitNumber"></div>
+                </div>
+                <div class="flex border border-black border-t-0">
+                    <div class="w-1/2 border-r border-black p-1">Shift</div>
+                    <div class="w-1/2 p-1" id="printShift"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Grid: CHECKLIST P2H and BUGAR SELAMAT -->
+        <div class="grid grid-cols-2 gap-x-4">
+            <!-- Left Column: CHECKLIST P2H -->
+            <div>
+                <div class="text-center font-semibold border border-black p-1 bg-gray-200">
+                    CHECKLIST P2H
+                </div>
+                <!-- Header Kolom Checklist P2H -->
+                <div class="grid grid-cols-[2.2fr_0.4fr_0.4fr_0.5fr_1.5fr] text-xxs border-l border-r border-t-0 border-black">
+                    <div class="table-header-cell border-r border-black text-center">ITEM</div>
+                    <div class="table-header-cell border-r border-black text-center">LAYAK</div>
+                    <div class="table-header-cell border-r border-black text-center">TIDAK LAYAK</div>
+                    <div class="table-header-cell border-r border-black text-center">KODE</div>
+                    <div class="table-header-cell text-center">KETERANGAN</div>
+                </div>
+                <div class="border border-black border-t-0 checklist-container" id="printVehicleChecklist">
+                    <!-- SPESIFIK A - ENGINE, ELEKTRIKAL DAN LAINNYA (Merged and Centered) -->
+                    <div class="grid grid-cols-5 text-xxs table-row">
+                        <div class="col-span-5 table-cell text-center font-bold">SPESIFIK A - ENGINE, ELEKTRIKAL DAN LAINNYA</div>
+                    </div>
+                    <!-- Items for SPESIFIK A will be dynamically populated by JS -->
+                </div>
+                <!-- Kesimpulan Unit Section -->
+                <div class="mt-4 border border-black p-1 text-sm">
+                    <div class="flex items-center mb-1">
+                        <div class="font-bold mr-2">KESIMPULAN : UNIT</div>
+                        <div class="flex items-center mr-4">
+                            <div class="checkbox-box" id="printUnitLayak"></div> LAYAK
+                        </div>
+                        <div class="flex items-center">
+                            <div class="checkbox-box" id="printUnitTidakLayak"></div> TIDAK LAYAK
+                        </div>
+                    </div>
+                    <div class="flex items-center text-xs">
+                        <div class="font-bold mr-2">DIOPERASIKAN</div>
+                        <div class="checkbox-box" id="printUnitDioperasikan"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: BUGAR SELAMAT -->
+            <div>
+                <div class="text-center font-semibold border border-black p-1 bg-gray-200">
+                    BUGAR SELAMAT
+                </div>
+                <!-- Header Kolom Bugar Selamat -->
+                <div class="grid grid-cols-[2.5fr_0.4fr_0.4fr] text-xxs border-l border-r border-t-0 border-black">
+                    <div class="table-header-cell border-r border-black text-center">PERTANYAAN</div>
+                    <div class="table-header-cell border-r border-black text-center">YA</div>
+                    <div class="table-header-cell text-center">TIDAK</div>
+                </div>
+                <div class="border border-black border-t-0" id="printDriverChecklist">
+                    <!-- Driver checklist items will be dynamically populated here -->
+                </div>
+
+                <!-- Kesimpulan Driver Section -->
+                <div class="mt-4 border border-black p-1 text-sm">
+                    <div class="flex items-center mb-1">
+                        <div class="font-bold mr-2">KESIMPULAN : SAYA</div>
+                        <div class="flex items-center mr-4">
+                            <div class="checkbox-box" id="printDriverSiap"></div> SIAP
+                        </div>
+                        <div class="flex items-center">
+                            <div class="checkbox-box" id="printDriverTidakSiap"></div> TIDAK SIAP
+                        </div>
+                    </div>
+                    <div class="font-bold uppercase text-xs mb-1">MELAKUKAN PEKERJAAN</div>
+                    
+                    <!-- Keterangan Umum dan Disetujui -->
+                    <div class="grid grid-cols-[1.5fr_1fr] gap-2 text-xxs mt-2">
+                        <div>
+                            <div class="font-bold uppercase">KETERANGAN :</div>
+                            <div class="border border-black p-1 h-12 overflow-hidden" id="printFinalNotes"></div>
+                        </div>
+                        <div class="flex flex-col items-center">
+                            <div class="text-center">Disetujui,</div>
+                            <div class="signature-area w-full mt-4" id="printSignatureSupervisor"></div>
+                            <div class="text-center mt-1 text-xxs">Pengawas</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Kilometer, Shift and Overtime Section (Revised Layout) -->
+        <div class="grid grid-cols-2 gap-x-4 mt-4 text-sm">
+            <div class="border border-black p-1">
+                <div class="flex justify-between items-center mb-2">
+                    <div class="flex items-center">
+                        <span class="mr-2">Kilometer Awal</span>
+                        <div class="border-b border-black w-24 text-center" id="printKmStart"></div>
+                    </div>
+                    <div class="flex items-center">
+                        <span class="mr-2">Kilometer Akhir</span>
+                        <div class="border-b border-black w-24 text-center" id="printKmEnd"></div>
+                    </div>
+                </div>
+                <div class="flex justify-between items-center mb-2">
+                    <div class="flex items-center">
+                        <span class="mr-2">Shift 1</span>
+                        <div class="checkbox-box" id="printShift1"></div>
+                    </div>
+                    <div class="flex items-center">
+                        <span class="mr-2">Shift 2</span>
+                        <div class="checkbox-box" id="printShift2"></div>
+                    </div>
+                </div>
+                <div class="font-bold mt-2">Keterangan Lembur :</div>
+                <div class="h-8 border border-black mt-1 p-1" id="printOvertimeNotes"></div>
+            </div>
+            <!-- KODE BAHAYA (UNIT) di kolom terpisah di samping -->
+            <div class="border border-black p-1">
+                <div class="font-semibold text-center">KODE BAHAYA (UNIT)</div>
+                <div class="grid grid-cols-2 gap-1 mt-2 text-xxs">
+                    <div class="flex items-center"><div class="checkbox-box"></div> A = Operasi & perbaikan segera</div>
+                    <div class="flex items-center"><div class="checkbox-box"></div> B = Perbaikan dalam waktu 24 jam</div>
+                    <div class="flex items-center"><div class="checkbox-box"></div> C = Perbaikan dalam waktu 1 minggu</div>
+                    <div class="flex items-center"><div class="checkbox-box"></div> AA = Perbaikan dalam 12 jam</div>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- Signature Section -->
+        <div class="grid grid-cols-3 gap-x-4 mt-4 text-sm">
+            <div class="signature-block">
+                <div class="text-center">Disiapkan,</div>
+                <div class="signature-area-print mx-auto mt-4" id="printSignatureDriver"></div>
+                <div class="text-center mt-1">(Driver/Pengemudi)</div>
+            </div>
+            <div class="signature-block">
+                <div class="text-center">Mengetahui,</div>
+                <div class="signature-area-print mx-auto mt-4" id="printSignatureUserSupervisor"></div>
+                <div class="text-center mt-1">(User/Pengawas/Atasan)</div>
+            </div>
+            <div class="signature-block">
+                <div class="text-center"></div>
+                <div class="signature-area-print mx-auto mt-4" id="printSignatureMechanic"></div>
+                <div class="text-center mt-1">(Mekanik/GA)</div>
+            </div>
+        </div>
+
+        <div class="text-right text-xxxs mt-4">Halaman 1/1</div>
+
+    </div>
+
+    <script>
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('p2hApp', () => ({
+                activeTab: 'info',
+                showSuccessModal: false,
+                isGeneratingSuggestion: false,
+                signaturePads: {
+                    driver: null,
+                    supervisor: null,
+                },
+                formData: {
+                    driverName: '',
+                    unitNumber: '',
+                    date: new Date().toISOString().slice(0, 10),
+                    shift: 'Shift 1',
+                    kmStart: null,
+                    kmEnd: null,
+                    vehicleChecklist: [
+                        { name: 'Fungsi Steering / Kemudi', code: 'AA', status: 'Layak', notes: '' },
+                        { name: 'Kelayakan Ban', code: 'AA', status: 'Layak', notes: '' },
+                        { name: 'Kekencangan Baut Roda', code: 'A', status: 'Layak', notes: '' },
+                        { name: 'Kondisi Kaca (Depan, Spion)', code: 'A', status: 'Layak', notes: '' },
+                        { name: 'Lampu Utama / Jauh', code: 'A', status: 'Layak', notes: '' },
+                        { name: 'Lampu Stop / Belakang', code: 'AA', status: 'Layak', notes: '' },
+                        { name: 'Lampu Hazard, Lampu Sign', code: 'A', status: 'Layak', notes: '' },
+                        { name: 'Air Conditioner (AC)', code: 'B', status: 'Layak', notes: '' },
+                        { name: 'Bunyi Alarm Mundur', code: 'A', status: 'Layak', notes: '' },
+                        { name: 'Fungsi Speedometer', code: 'A', status: 'Layak', notes: '' },
+                        { name: 'Kondisi Battery (AKI)', code: 'A', status: 'Layak', notes: '' },
+                        { name: 'Level Oli Mesin', code: 'AA', status: 'Layak', notes: '' },
+                        { name: 'Level Minyak Rem, Kopling', code: 'AA', status: 'Layak', notes: '' },
+                        { name: 'Level Air Radiator', code: 'AA', status: 'Layak', notes: '' },
+                        { name: 'Kondisi V-Belt', code: 'AA', status: 'Layak', notes: '' },
+                        { name: 'Fungsi Tuas / Handle Transmisi', code: 'AA', status: 'Layak', notes: '' },
+                        { name: 'Fungsi Rem Tangan / Kaki', code: 'AA', status: 'Layak', notes: '' },
+                        { name: 'Fungsi Air Wiper / Washer', code: 'B', status: 'Layak', notes: '' },
+                        { name: 'Fungsi Seatbelt', code: 'A', status: 'Layak', notes: '' },
+                        { name: 'Fungsi Klakson', code: 'A', status: 'Layak', notes: '' },
+                        { name: 'Fungsi Sabuk Keselamatan', code: 'A', status: 'Layak', notes: '' },
+                        { name: 'Tanda Bahaya Segitiga', code: 'A', status: 'Layak', notes: '' },
+                        { name: 'APAR', code: 'AA', status: 'Layak', notes: '' },
+                        { name: 'Kunci Roda', code: 'A', status: 'Layak', notes: '' },
+                        { name: 'Dongkrak', code: 'A', status: 'Layak', notes: '' },
+                        { name: 'Strobe Light Berfungsi', code: 'AA', status: 'Layak', notes: '' },
+                        { name: 'Nomor Lambung Unit', code: 'A', status: 'Layak', notes: '' },
+                        { name: 'Radio Komunikasi Berfungsi', code: 'AA', status: 'Layak', notes: '' },
+                        { name: 'Lampu Atap Kabin', code: 'AA', status: 'Layak', notes: '' },
+                      	{ name: 'Buggy Whip : 4 Meter', code: 'AA', status: 'Layak', notes: '' },
+                        { name: 'Fungsi 4 x 4 WD', code: 'A', status: 'Layak', notes: '' },
+                    ],
+                    driverChecklist: [
+                        { question: 'Saya hari ini sehat dan tidak demam?', answer: 'Ya', isNegative: false },
+                        { question: 'Saya tidak dalam kondisi mengantuk?', answer: 'Ya', isNegative: false },
+                        { question: 'Saya memenuhi istirahat yang cukup?', answer: 'Ya', isNegative: false },
+                        { question: 'Saya sedang dalam pengaruh obat yang menyebabkan kantuk?', answer: 'Tidak', isNegative: true },
+                        { question: 'Saya memiliki permasalahan pribadi/keluarga yang mengganggu?', answer: 'Tidak', isNegative: true },
+                        { question: 'Saya siap mematuhi semua rambu dan peraturan?', answer: 'Ya', isNegative: false },
+                        { question: 'Saya siap tidak menggunakan HP saat mengemudi?', answer: 'Ya', isNegative: false },
+                        { question: 'Saya siap menggunakan APD lengkap (Sepatu, Helm, dll)?', answer: 'Ya', isNegative: false },
+                    ],
+                    finalNotes: '',
+                    overtimeNotes: '',
+                    signature: {
+                        driver: null,
+                        supervisor: null,
+                        mechanic: null,
+                    },
+                    // PASTE YOUR LOGO'S BASE64 STRING HERE
+                    // Untuk mendapatkan string Base64 logo Anda:
+                    // 1. Kunjungi situs seperti https://www.base64-image.de/ atau https://base64.guru/converter/encode/image
+                    // 2. Unggah file logo PT MMI Anda (misalnya, MMI.png atau MMI.jpg).
+                    // 3. Salin string Base64 yang dihasilkan (akan dimulai dengan "data:image/png;base64,..." atau "data:image/jpeg;base64,...").
+                    // 4. Tempelkan string tersebut di bawah ini, menggantikan placeholder.
+                    logoBase64: 'data:image/png;base64,https://pknresources.com/assets/img/subholding/MMI.png=' // Placeholder transparan. GANTI INI!
+                },
+
+                init() {
+                    console.log('Alpine.js app initialized.'); // Log ini untuk verifikasi
+                    console.log('formData:', this.formData); // Log ini untuk memastikan formData terdefinisi
+
+                    this.$nextTick(() => {
+                        const canvasDriver = document.getElementById('signaturePadDriver');
+                        if (canvasDriver && !this.signaturePads.driver) {
+                            this.signaturePads.driver = new SignaturePad(canvasDriver);
+                            this.resizeCanvas(canvasDriver, this.signaturePads.driver);
+                        }
+                        
+                        const canvasSupervisor = document.getElementById('signaturePadSupervisor');
+                        if (canvasSupervisor && !this.signaturePads.supervisor) {
+                            this.signaturePads.supervisor = new SignaturePad(canvasSupervisor);
+                            this.resizeCanvas(canvasSupervisor, this.signaturePads.supervisor);
+                        }
+                    });
+                },
+
+                get vehicleConclusion() {
+                    const isNotLayak = this.formData.vehicleChecklist.some(item => item.status === 'Tidak Layak');
+                    return isNotLayak ? 'TIDAK LAYAK' : 'LAYAK';
+                },
+
+                get driverConclusion() {
+                    const isNotSiap = this.formData.driverChecklist.some(item => item.isNegative ? item.answer === 'Ya' : item.answer === 'Tidak');
+                    return isNotSiap ? 'TIDAK SIAP' : 'SIAP';
+                },
+
+                clearSignature(type) {
+                    if (this.signaturePads[type]) {
+                        this.signaturePads[type].clear();
+                    }
+                },
+
+                submitAndGeneratePdf() {
+                    if (this.signaturePads.driver && !this.signaturePads.driver.isEmpty()) {
+                        this.formData.signature.driver = this.signaturePads.driver.toDataURL();
+                    } else {
+                        this.formData.signature.driver = null;
+                    }
+
+                    if (this.signaturePads.supervisor && !this.signaturePads.supervisor.isEmpty()) {
+                        this.formData.signature.supervisor = this.signaturePads.supervisor.toDataURL();
+                    } else {
+                        this.formData.signature.supervisor = null;
+                    }
+
+                    this.formData.signature.mechanic = null; // No interactive pad for mechanic yet
+
+                    this.showSuccessModal = true;
+                },
+
+                async generateNotesSuggestion() {
+                    this.isGeneratingSuggestion = true;
+                    this.formData.finalNotes = '';
+
+                    const nonLayakItems = this.formData.vehicleChecklist.filter(item => item.status === 'Tidak Layak');
+
+                    if (nonLayakItems.length === 0) {
+                        this.formData.finalNotes = 'Semua item kendaraan dalam kondisi Layak.';
+                        this.isGeneratingSuggestion = false;
+                        return;
+                    }
+
+                    const itemDescriptions = nonLayakItems.map(item => {
+                        let desc = item.name;
+                        if (item.notes) {
+                            desc += ` (Keterangan: ${item.notes})`;
+                        }
+                        return desc;
+                    }).join('; ');
+
+                    const prompt = `Buatkan ringkasan keterangan singkat (maksimal 50 kata) untuk laporan P2H berdasarkan item-item kendaraan yang dinyatakan 'Tidak Layak' berikut. Fokus pada masalah utama dan tindakan yang mungkin diperlukan. Pisahkan poin-poin dengan tanda titik koma jika ada beberapa masalah. Contoh: Ban depan kempes; Rem blong. Item-item tidak layak: ${itemDescriptions}`;
+
+                    let chatHistory = [];
+                    chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+                    const payload = { contents: chatHistory };
+                    const apiKey = "";
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+                    let retries = 0;
+                    const maxRetries = 5;
+                    let delay = 1000;
+
+                    while (retries < maxRetries) {
+                        try {
+                            const response = await fetch(apiUrl, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(payload)
+                            });
+
+                            if (!response.ok) {
+                                if (response.status === 429) {
+                                    await new Promise(res => setTimeout(res, delay));
+                                    delay *= 2;
+                                    retries++;
+                                    continue;
+                                }
+                                throw new Error(`HTTP error! status: ${response.status}`);
+                            }
+
+                            const result = await response.json();
+
+                            if (result.candidates && result.candidates.length > 0 &&
+                                result.candidates[0].content && result.candidates[0].content.parts &&
+                                result.candidates[0].content.parts.length > 0) {
+                                const text = result.candidates[0].content.parts[0].text;
+                                this.formData.finalNotes = text;
+                            } else {
+                                this.formData.finalNotes = 'Tidak dapat menghasilkan saran keterangan. Respon API tidak valid.';
+                            }
+                            break;
+                        } catch (error) {
+                            this.formData.finalNotes = 'Terjadi kesalahan saat menghubungi layanan AI.';
+                            break;
+                        }
+                    }
+
+                    if (retries === maxRetries) {
+                        this.formData.finalNotes = 'Gagal menghasilkan saran keterangan setelah beberapa kali mencoba. Silakan coba lagi nanti.';
+                    }
+
+                    this.isGeneratingSuggestion = false;
+                },
+
+                populatePrintableForm() {
+                    // General Information
+                    document.getElementById('printDate').textContent = this.formData.date;
+                    document.getElementById('printDriverName').textContent = this.formData.driverName;
+                    document.getElementById('printUnitNumber').textContent = this.formData.unitNumber;
+                    document.getElementById('printShift').textContent = this.formData.shift;
+                    document.getElementById('printKmStart').textContent = this.formData.kmStart || '';
+                    document.getElementById('printKmEnd').textContent = this.formData.kmEnd || '';
+                    document.getElementById('printOvertimeNotes').textContent = this.formData.overtimeNotes || '';
+
+                    // Set logo for printable form
+                    document.querySelector('#p2hPrintableForm .flex.items-center .mr-2 img').src = this.formData.logoBase64;
+
+
+                    // Clear existing checkboxes in printable form for dynamic population
+                    document.querySelectorAll('#p2hPrintableForm .checkbox-box').forEach(box => {
+                        box.classList.remove('checked-box');
+                    });
+
+                    // Populate Vehicle Checklist
+                    const printVehicleChecklistContainer = document.getElementById('printVehicleChecklist');
+                    printVehicleChecklistContainer.innerHTML = ''; // Clear existing content, including static headers
+
+                    const vehicleCategories = {
+                        'SPESIFIK A - ENGINE, ELEKTRIKAL DAN LAINNYA': this.formData.vehicleChecklist.slice(0, 22),
+                        'SPESIFIK B - KELENGKAPAN SAFETY': this.formData.vehicleChecklist.slice(22, 29),
+                        'SPESIFIK C - PERAWATAN MASUK PIT (FULL ACCESS)': this.formData.vehicleChecklist.slice(29)
+                    };
+
+                    for (const category in vehicleCategories) {
+                        const categoryHeader = document.createElement('div');
+                        categoryHeader.className = 'grid grid-cols-5 text-xxs table-row';
+                        categoryHeader.innerHTML = `<div class="col-span-5 table-cell text-center font-bold">${category}</div>`;
+                        printVehicleChecklistContainer.appendChild(categoryHeader);
+
+                        vehicleCategories[category].forEach(item => {
+                            const row = document.createElement('div');
+                            // Use the same grid columns as the header for consistency
+                            row.className = 'grid grid-cols-[2.2fr_0.4fr_0.4fr_0.5fr_1.5fr] text-xxs table-row'; // Updated grid
+                            row.innerHTML = `
+                                <div class="table-cell border-r border-black">${item.name}</div>
+                                <div class="table-cell border-r border-black text-center"><div class="checkbox-box ${item.status === 'Layak' ? 'checked-box' : ''}"></div></div>
+                                <div class="table-cell border-r border-black text-center"><div class="checkbox-box ${item.status === 'Tidak Layak' ? 'checked-box' : ''}"></div></div>
+                                <div class="table-cell border-r border-black text-center">${item.code}</div>
+                                <div class="table-cell">${item.notes}</div>
+                            `;
+                            printVehicleChecklistContainer.appendChild(row);
+                        });
+                    }
+                    // Ensure the last row of the last category has no bottom border
+                    const lastVehicleRow = printVehicleChecklistContainer.querySelector('.table-row:last-child .table-cell');
+                    if (lastVehicleRow) {
+                        lastVehicleRow.style.borderBottom = 'none';
+                    }
+
+
+                    // Populate Driver Checklist
+                    const printDriverChecklistContainer = document.getElementById('printDriverChecklist');
+                    printDriverChecklistContainer.innerHTML = ''; // Clear existing content
+                    this.formData.driverChecklist.forEach(item => {
+                        const row = document.createElement('div');
+                        // Use the same grid columns as the header for consistency
+                        row.className = 'grid grid-cols-[2.5fr_0.4fr_0.4fr] text-xxs table-row'; // Updated grid
+                        const yaChecked = (item.answer === 'Ya' && !item.isNegative) || (item.answer === 'Tidak' && item.isNegative);
+                        const tidakChecked = (item.answer === 'Tidak' && !item.isNegative) || (item.answer === 'Ya' && item.isNegative);
+                        row.innerHTML = `
+                            <div class="table-cell border-r border-black">${item.question}</div>
+                            <div class="table-cell border-r border-black text-center"><div class="checkbox-box ${yaChecked ? 'checked-box' : ''}"></div></div>
+                            <div class="table-cell text-center"><div class="checkbox-box ${tidakChecked ? 'checked-box' : ''}"></div></div>
+                        `;
+                        printDriverChecklistContainer.appendChild(row);
+                    });
+                    // Ensure the last row of driver checklist has no bottom border
+                    const lastDriverRow = printDriverChecklistContainer.querySelector('.table-row:last-child .table-cell');
+                    if (lastDriverRow) {
+                        lastDriverRow.style.borderBottom = 'none';
+                    }
+
+
+                    // Populate Conclusions
+                    if (this.vehicleConclusion === 'LAYAK') {
+                        document.getElementById('printUnitLayak').classList.add('checked-box');
+                        document.getElementById('printUnitTidakLayak').classList.remove('checked-box');
+                        document.getElementById('printUnitDioperasikan').classList.add('checked-box');
+                    } else {
+                        document.getElementById('printUnitLayak').classList.remove('checked-box');
+                        document.getElementById('printUnitTidakLayak').classList.add('checked-box');
+                        document.getElementById('printUnitDioperasikan').classList.remove('checked-box');
+                    }
+
+                    if (this.driverConclusion === 'SIAP') {
+                        document.getElementById('printDriverSiap').classList.add('checked-box');
+                        document.getElementById('printDriverTidakSiap').classList.remove('checked-box');
+                    } else {
+                        document.getElementById('printDriverSiap').classList.remove('checked-box');
+                        document.getElementById('printDriverTidakSiap').classList.add('checked-box');
+                    }
+
+                    // Populate Shift checkboxes
+                    if (this.formData.shift === 'Shift 1') {
+                        document.getElementById('printShift1').classList.add('checked-box');
+                        document.getElementById('printShift2').classList.remove('checked-box');
+                    } else if (this.formData.shift === 'Shift 2') {
+                        document.getElementById('printShift2').classList.add('checked-box');
+                        document.getElementById('printShift1').classList.remove('checked-box');
+                    } else {
+                        document.getElementById('printShift1').classList.remove('checked-box');
+                        document.getElementById('printShift2').classList.remove('checked-box');
+                    }
+
+
+                    // Populate Final Notes
+                    document.getElementById('printFinalNotes').textContent = this.formData.finalNotes;
+
+                    // Populate Signatures
+                    const addSignatureToPrint = (signatureData, elementId) => {
+                        const signatureDiv = document.getElementById(elementId);
+                        signatureDiv.innerHTML = ''; // Clear previous content
+                        if (signatureData) {
+                            const img = document.createElement('img');
+                            img.src = signatureData;
+                            img.alt = 'Tanda Tangan';
+                            // Adjust image style for printing
+                            img.style.maxWidth = '100%';
+                            img.style.maxHeight = '100%';
+                            img.style.objectFit = 'contain';
+                            img.style.position = 'absolute'; /* Keep absolute for vertical centering */
+                            img.style.bottom = '0';
+                            img.style.left = '50%';
+                            img.style.transform = 'translateX(-50%)';
+                            signatureDiv.appendChild(img);
+                        }
+                    };
+                    addSignatureToPrint(this.formData.signature.driver, 'printSignatureDriver');
+                    // Note: The supervisor signature in the physical form is under "Disetujui, Pengawas"
+                    addSignatureToPrint(this.formData.signature.supervisor, 'printSignatureSupervisor');
+                    addSignatureToPrint(this.formData.signature.mechanic, 'printSignatureMechanic');
+                },
+
+                generatePdf() {
+                    // Temporarily make the printable form visible for html2canvas
+                    const printableForm = document.getElementById('p2hPrintableForm');
+                    printableForm.style.position = 'static';
+                    printableForm.style.left = '0';
+                    printableForm.style.top = '0';
+                    printableForm.style.border = 'none'; // Remove border for final PDF, was for debug
+
+                    // Populate the hidden printable form with current data
+                    this.populatePrintableForm();
+
+                    const pdfName = `P2H_${this.formData.unitNumber || 'Unit_Tidak_Ada'}_${this.formData.date || 'Tanggal_Tidak_Ada'}.pdf`;
+
+                    this.$nextTick(() => {
+                        html2canvas(printableForm, {
+                            scale: 2, // Increase resolution for better PDF quality
+                            useCORS: true, // Important if there are images from other domains
+                            logging: true, // Enable logging for html2canvas to debug issues
+                            onclone: (document) => {
+                                // This callback is useful for making last-minute adjustments to the cloned DOM
+                                // before html2canvas renders it.
+                                // For example, ensure any dynamically added images (like signatures) are loaded.
+                            }
+                        }).then(canvas => {
+                            const imgData = canvas.toDataURL('image/png');
+                            const { jsPDF } = window.jspdf;
+                            const pdf = new jsPDF('p', 'mm', 'a4');
+                            const imgProps = pdf.getImageProperties(imgData);
+                            const pdfWidth = pdf.internal.pageSize.getWidth();
+                            const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+                            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+                            pdf.save(pdfName);
+
+                            // Hide the printable form again after PDF generation
+                            printableForm.style.position = 'absolute';
+                            printableForm.style.left = '-9999px';
+                            printableForm.style.top = '-9999px';
+                            printableForm.style.border = 'none'; // Remove border
+                        }).catch(error => {
+                            console.error('Error during html2canvas processing:', error);
+                            // Hide the printable form even if there's an error
+                            printableForm.style.position = 'absolute';
+                            printableForm.style.left = '-9999px';
+                            printableForm.style.top = '-9999px';
+                            printableForm.style.border = 'none'; // Remove border
+                            alert('Terjadi kesalahan saat membuat PDF. Silakan coba lagi.');
+                        });
+                    });
+                },
+
+                resizeCanvas(canvas, signaturePad) {
+                    const ratio =  Math.max(window.devicePixelRatio || 1, 1);
+                    canvas.width = canvas.offsetWidth * ratio;
+                    canvas.height = canvas.offsetHeight * ratio;
+                    canvas.getContext("2d").scale(ratio, ratio);
+                    signaturePad.clear();
+                }
+            }))
+        });
+    </script>
+</body>
+</html>
